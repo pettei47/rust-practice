@@ -21,5 +21,7 @@ fn main() {
         )
         .get_matches();
 
-    println!("{:#?}", matches)
+    let text = matches.values_of_lossy("text").unwrap();
+    let no_newline = matches.is_present("no_newline");
+    print!("{}{}", text.join(" "), if no_newline { "" } else { "\n" });
 }
