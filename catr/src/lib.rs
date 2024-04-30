@@ -37,7 +37,7 @@ pub fn run(args: Args) -> MyResult<()> {
 /// cat command with Rust
 #[derive(Debug, Parser)]
 #[command(version, author, about)]
-pub struct Args{
+pub struct Args {
   /// Input file(s)
   #[arg(value_name = "FILE", default_value = "-")]
   files: Vec<String>,
