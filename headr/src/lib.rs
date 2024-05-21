@@ -44,16 +44,16 @@ pub fn get_args() -> MyResult<Config> {
     .get_matches();
 
   let lines = matches
-        .value_of("lines")
-        .map(parse_positive_int)
-        .transpose()
-        .map_err(|e| format!("illegal line count -- {}", e))?;
-  
+    .value_of("lines")
+    .map(parse_positive_int)
+    .transpose()
+    .map_err(|e| format!("illegal line count -- {}", e))?;
+
   let bytes = matches
-        .value_of("bytes")
-        .map(parse_positive_int)
-        .transpose()
-        .map_err(|e| format!("illegal byte count -- {}", e))?;
+    .value_of("bytes")
+    .map(parse_positive_int)
+    .transpose()
+    .map_err(|e| format!("illegal byte count -- {}", e))?;
 
   Ok(Config {
     files: matches.values_of_lossy("files").unwrap(),
@@ -70,9 +70,11 @@ pub fn run(config: Config) -> MyResult<()> {
       Err(e) => eprintln!("{}: {}", filename, e),
       Ok(mut file) => {
         if num_files > 1 {
-          println!("{}==> {} <==",
-          if file_num > 0 { "\n" } else { "" },
-          filename);
+          println!(
+            "{}==> {} <==",
+            if file_num > 0 { "\n" } else { "" },
+            filename
+          );
         }
         if let Some(num_bytes) = config.bytes {
           let bytes: Result<Vec<_>, _> = file.bytes().take(num_bytes).collect();
@@ -87,7 +89,7 @@ pub fn run(config: Config) -> MyResult<()> {
             line.clear();
           }
         }
-      },
+      }
     }
   }
   Ok(())
