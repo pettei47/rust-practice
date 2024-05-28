@@ -64,7 +64,7 @@ pub struct Config {
     let mut bytes = matches.is_present("bytes");
     let chars = matches.is_present("chars");
 
-    if [lines, words, bytes, chars].iter().all(|v| !v) {
+    if [lines, words, bytes, chars].iter().all(|&v| !v) {
       lines = true;
       words = true;
       bytes = true;
