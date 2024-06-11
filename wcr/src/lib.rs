@@ -82,26 +82,31 @@ pub fn get_args() -> MyResult<Config> {
 }
 
 pub fn run(config: Config) -> MyResult<()> {
+    let mut total_lines = 0;
+    let mut total_words = 0;
+    let mut total_bytes = 0;
+    let mut total_chars = 0;
     for filename in &config.files {
         match open(filename) {
             Err(err) => eprintln!("{}: {}", filename, err),
             Ok(file) => {
                 let file_info = count(file)?;
-                if config.lines {
-                    print!("{:8}", file_info.num_lines);
-                }
-                if config.words {
-                    print!("{:8}", file_info.num_words);
-                }
-                if config.bytes {
-                    print!("{:8}", file_info.num_bytes);
-                }
-                if config.chars {
-                    print!("{:8}", file_info.num_chars);
-                }
-                println!(" {}", filename)
+                total_lines += file_info.num_lines;
+                total_words += file_info.num_words;
+                total_bytes += file_info.num_bytes;
+                total_chars += file_info.num_chars;
+                print_count(&config, file_info, filename);
             }
         }
+    }
+    if config.files.len() > 1 {
+        let total_info = FileInfo {
+            num_lines: total_lines,
+            num_words: total_words,
+            num_bytes: total_bytes,
+            num_chars: total_chars,
+        };
+        print_count(&config, total_info, "total");
     }
     Ok(())
 }
@@ -146,6 +151,25 @@ pub fn count(mut file: impl BufRead) -> MyResult<FileInfo> {
         num_bytes,
         num_chars,
     })
+}
+
+fn print_count(config: &Config, file_info: FileInfo, filename: &str) {
+    if config.lines {
+        print!("{:8}", file_info.num_lines);
+    }
+    if config.words {
+        print!("{:8}", file_info.num_words);
+    }
+    if config.bytes {
+        print!("{:8}", file_info.num_bytes);
+    }
+    if config.chars {
+        print!("{:8}", file_info.num_chars);
+    }
+    if filename != "-" {
+        print!(" {}", filename);
+    }
+    println!();
 }
 
 #[cfg(test)]
