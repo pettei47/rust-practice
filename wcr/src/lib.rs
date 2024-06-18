@@ -154,27 +154,29 @@ pub fn count(mut file: impl BufRead) -> MyResult<FileInfo> {
 }
 
 fn print_count(config: &Config, file_info: FileInfo, filename: &str) {
-    if config.lines {
-        print!("{:8}", file_info.num_lines);
+    let _lines = format_field(file_info.num_lines, config.lines);
+    let _words = format_field(file_info.num_words, config.words);
+    let _bytes = format_field(file_info.num_bytes, config.bytes);
+    let _chars = format_field(file_info.num_chars, config.chars);
+    let _file = if filename != "-" {
+        format!(" {}", filename)
+    } else {
+        String::new()
+    };
+    println!("{}{}{}{}{}", _lines, _words, _bytes, _chars, _file);
+}
+
+fn format_field(value: usize, show: bool) -> String {
+    if show {
+        format!("{:8}", value)
+    } else {
+        String::new()
     }
-    if config.words {
-        print!("{:8}", file_info.num_words);
-    }
-    if config.bytes {
-        print!("{:8}", file_info.num_bytes);
-    }
-    if config.chars {
-        print!("{:8}", file_info.num_chars);
-    }
-    if filename != "-" {
-        print!(" {}", filename);
-    }
-    println!();
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{count, FileInfo};
+    use super::{count, format_field, FileInfo};
     use std::io::Cursor;
 
     #[test]
@@ -189,5 +191,12 @@ mod tests {
             num_chars: 47,
         };
         assert_eq!(info.unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_field() {
+        assert_eq!(format_field(1, true), "       1");
+        assert_eq!(format_field(1, false), "");
+        assert_eq!(format_field(10, true), "      10");
     }
 }
