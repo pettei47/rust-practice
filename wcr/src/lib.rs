@@ -95,7 +95,7 @@ pub fn run(config: Config) -> MyResult<()> {
                 total_words += file_info.num_words;
                 total_bytes += file_info.num_bytes;
                 total_chars += file_info.num_chars;
-                print_count(&config, file_info, filename);
+                print_counts(&config, file_info, filename);
             }
         }
     }
@@ -106,7 +106,7 @@ pub fn run(config: Config) -> MyResult<()> {
             num_bytes: total_bytes,
             num_chars: total_chars,
         };
-        print_count(&config, total_info, "total");
+        print_counts(&config, total_info, "total");
     }
     Ok(())
 }
@@ -153,7 +153,7 @@ pub fn count(mut file: impl BufRead) -> MyResult<FileInfo> {
     })
 }
 
-fn print_count(config: &Config, file_info: FileInfo, filename: &str) {
+fn print_counts(config: &Config, file_info: FileInfo, filename: &str) {
     let _lines = format_field(file_info.num_lines, config.lines);
     let _words = format_field(file_info.num_words, config.words);
     let _bytes = format_field(file_info.num_bytes, config.bytes);
