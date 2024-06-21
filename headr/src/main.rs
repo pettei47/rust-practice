@@ -1,6 +1,11 @@
+use clap::Parser;
+use headr::Config;
+
 fn main() {
-  if let Err(e) = headr::get_args().and_then(headr::run) {
-    eprintln!("{}", e);
+  let config = Config::parse();
+
+  if let Err(e) = headr::run(config) {
+    eprintln!("Error: {}", e);
     std::process::exit(1);
   }
 }
