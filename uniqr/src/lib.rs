@@ -1,8 +1,8 @@
 use clap::Parser;
 use std::{
     error::Error,
-    fs::File,
-    io::{self, BufRead, BufReader},
+    fs::{File, OpenOptions},
+    io::{self, BufRead, BufReader, Write},
 };
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
@@ -29,28 +29,28 @@ pub fn run(config: Config) -> MyResult<()> {
     let mut count = 0;
     loop {
         let bytes = file.read_line(&mut line)?;
-        // println!("{:?}", bytes);
-        // println!("{:?}", line);
-        // println!("{:?}", prev_line);
-        if prev_line.is_empty() && count == 0 {
-            prev_line = line.clone();
-            line.clear();
-            continue;
-        }
-        count += 1;
-        if line != prev_line {
-            if config.count {
-                println!("{:>4} {}", count, prev_line.replace('\n', ""));
+        let line_trim_end = line.trim_end();
+        if line_trim_end != prev_line.trim_end() && count > 0 {
+            let output = make_output(&prev_line, count, &config);
+            if let Some(out_file) = &config.out_file {
+                let mut out = OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(out_file)?;
+                write!(out, "{}", output)?;
             } else {
-                println!("{}", prev_line.replace('\n', ""));
+                print!("{}", output);
             }
             count = 0;
         }
+        count += 1;
         if bytes == 0 {
             break;
         }
-        prev_line.clear();
-        prev_line = line.clone();
+        if prev_line.trim_end() != line_trim_end {
+            prev_line.clear();
+            prev_line = line.clone();
+        }
         line.clear();
     }
     Ok(())
@@ -60,5 +60,13 @@ fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
     match filename {
         "-" => Ok(Box::new(BufReader::new(io::stdin()))),
         _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
+    }
+}
+
+fn make_output(prev_line: &str, count: usize, config: &Config) -> String {
+    if config.count {
+        format!("{:>4} {}", count, prev_line)
+    } else {
+        prev_line.to_string()
     }
 }
