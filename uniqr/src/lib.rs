@@ -24,6 +24,11 @@ pub struct Config {
 
 pub fn run(config: Config) -> MyResult<()> {
     let mut file = open(&config.in_file).map_err(|e| format!("{}: {}", config.in_file, e))?;
+    let mut out_file = match &config.out_file {
+        Some(f) => OpenOptions::new().create(true).append(true).open(f)?,
+        _ => File::create("/dev/stdout")?,
+    };
+
     let mut line = String::new();
     let mut prev_line = String::new();
     let mut count = 0;
@@ -32,15 +37,7 @@ pub fn run(config: Config) -> MyResult<()> {
         let line_trim_end = line.trim_end();
         if line_trim_end != prev_line.trim_end() && count > 0 {
             let output = make_output(&prev_line, count, &config);
-            if let Some(out_file) = &config.out_file {
-                let mut out = OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(out_file)?;
-                write!(out, "{}", output)?;
-            } else {
-                print!("{}", output);
-            }
+            print_output(output, &config, &mut out_file)?;
             count = 0;
         }
         count += 1;
@@ -69,4 +66,13 @@ fn make_output(prev_line: &str, count: usize, config: &Config) -> String {
     } else {
         prev_line.to_string()
     }
+}
+
+fn print_output(output: String, config: &Config, out_file: &mut File) -> MyResult<()> {
+    if config.out_file.is_some() {
+        write!(out_file, "{}", output)?;
+    } else {
+        print!("{}", output);
+    }
+    Ok(())
 }
