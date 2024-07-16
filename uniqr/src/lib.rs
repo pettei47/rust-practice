@@ -25,6 +25,7 @@ pub struct Config {
 pub fn run(config: Config) -> MyResult<()> {
     let mut file = open(&config.in_file).map_err(|e| format!("{}: {}", config.in_file, e))?;
     let mut out_file = match &config.out_file {
+        // 最初、loopの中でopenしてたのでappendでopenする方法を調べた
         Some(f) => OpenOptions::new().create(true).append(true).open(f)?,
         _ => File::create("/dev/stdout")?,
     };
