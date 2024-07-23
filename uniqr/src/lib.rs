@@ -1,7 +1,7 @@
 use clap::Parser;
 use std::{
     error::Error,
-    fs::{File, OpenOptions},
+    fs::File,
     io::{self, BufRead, BufReader, Write},
 };
 
@@ -30,6 +30,14 @@ pub fn run(config: Config) -> MyResult<()> {
         _ => Box::new(io::stdout()),
     };
 
+    let make_output = |prev_line: &str, count: usize| -> String {
+        if config.count {
+            format!("{:>4} {}", count, prev_line)
+        } else {
+            prev_line.to_string()
+        }
+    };
+
     let mut print_output = |output: &str| write!(out_file, "{}", output);
 
     let mut line = String::new();
@@ -39,7 +47,7 @@ pub fn run(config: Config) -> MyResult<()> {
         let bytes = file.read_line(&mut line)?;
         let line_trim_end = line.trim_end();
         if line_trim_end != prev_line.trim_end() && count > 0 {
-            let output = make_output(&prev_line, count, &config);
+            let output = make_output(&prev_line, count);
             print_output(&output)?;
             count = 0;
         }
@@ -60,13 +68,5 @@ fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
     match filename {
         "-" => Ok(Box::new(BufReader::new(io::stdin()))),
         _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
-    }
-}
-
-fn make_output(prev_line: &str, count: usize, config: &Config) -> String {
-    if config.count {
-        format!("{:>4} {}", count, prev_line)
-    } else {
-        prev_line.to_string()
     }
 }
