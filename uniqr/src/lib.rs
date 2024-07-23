@@ -30,13 +30,7 @@ pub fn run(config: Config) -> MyResult<()> {
         _ => Box::new(io::stdout()),
     };
 
-    let mut print_output = |output: &str, count: usize| {
-        if config.count {
-            write!(out_file, "{:>4} {}", count, output)
-        } else {
-            write!(out_file, "{}", output)
-        }
-    };
+    let mut print_output = |output: &str| write!(out_file, "{}", output);
 
     let mut line = String::new();
     let mut prev_line = String::new();
@@ -46,7 +40,7 @@ pub fn run(config: Config) -> MyResult<()> {
         let line_trim_end = line.trim_end();
         if line_trim_end != prev_line.trim_end() && count > 0 {
             let output = make_output(&prev_line, count, &config);
-            print_output(&output, count)?;
+            print_output(&output)?;
             count = 0;
         }
         count += 1;
