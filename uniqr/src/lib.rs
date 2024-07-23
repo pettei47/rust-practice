@@ -24,10 +24,18 @@ pub struct Config {
 
 pub fn run(config: Config) -> MyResult<()> {
     let mut file = open(&config.in_file).map_err(|e| format!("{}: {}", config.in_file, e))?;
-    let mut out_file = match &config.out_file {
+    let mut out_file: Box<dyn Write> = match &config.out_file {
         // 最初、loopの中でopenしてたのでappendでopenする方法を調べた
-        Some(f) => OpenOptions::new().create(true).append(true).open(f)?,
-        _ => File::create("/dev/stdout")?,
+        Some(f) => Box::new(File::create(f)?),
+        _ => Box::new(io::stdout()),
+    };
+
+    let mut print_output = |output: &str, count: usize| {
+        if config.count {
+            write!(out_file, "{:>4} {}", count, output)
+        } else {
+            write!(out_file, "{}", output)
+        }
     };
 
     let mut line = String::new();
@@ -38,7 +46,7 @@ pub fn run(config: Config) -> MyResult<()> {
         let line_trim_end = line.trim_end();
         if line_trim_end != prev_line.trim_end() && count > 0 {
             let output = make_output(&prev_line, count, &config);
-            print_output(output, &config, &mut out_file)?;
+            print_output(&output, count)?;
             count = 0;
         }
         count += 1;
@@ -67,13 +75,4 @@ fn make_output(prev_line: &str, count: usize, config: &Config) -> String {
     } else {
         prev_line.to_string()
     }
-}
-
-fn print_output(output: String, config: &Config, out_file: &mut File) -> MyResult<()> {
-    if config.out_file.is_some() {
-        write!(out_file, "{}", output)?;
-    } else {
-        print!("{}", output);
-    }
-    Ok(())
 }
