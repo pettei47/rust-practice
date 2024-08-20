@@ -60,29 +60,24 @@ pub struct Config {
 
 pub fn run(config: Config) -> MyResult<()> {
     let type_filter = |entry: &walkdir::DirEntry| {
-        if config.entry_types.is_empty() {
-            true
+        let file_type = if entry.file_type().is_dir() {
+            EntryType::Dir
+        } else if entry.file_type().is_file() {
+            EntryType::File
+        } else if entry.file_type().is_symlink() {
+            EntryType::Link
         } else {
-            let entry_type = if entry.file_type().is_dir() {
-                EntryType::Dir
-            } else if entry.file_type().is_file() {
-                EntryType::File
-            } else if entry.file_type().is_symlink() {
-                EntryType::Link
-            } else {
-                return false;
-            };
-            config.entry_types.contains(&entry_type)
-        }
+            return false;
+        };
+        config.entry_types.is_empty() || config.entry_types.contains(&file_type)
     };
 
     let name_filter = |entry: &walkdir::DirEntry| {
-        if config.names.is_empty() {
-            true
-        } else {
-            let name = entry.file_name().to_str().unwrap();
-            config.names.iter().any(|re| re.is_match(name))
-        }
+        config.names.is_empty()
+            || config
+                .names
+                .iter()
+                .any(|re| re.is_match(entry.file_name().to_str().unwrap()))
     };
 
     for path in config.paths {
