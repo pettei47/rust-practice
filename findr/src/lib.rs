@@ -59,32 +59,47 @@ pub struct Config {
 }
 
 pub fn run(config: Config) -> MyResult<()> {
-    for path in config.paths {
-        for entry in WalkDir::new(path) {
-            match entry {
-                Err(e) => eprintln!("{}", e),
-                Ok(entry) => {
-                    let entry_type = if entry.file_type().is_dir() {
-                        EntryType::Dir
-                    } else if entry.file_type().is_file() {
-                        EntryType::File
-                    } else if entry.file_type().is_symlink() {
-                        EntryType::Link
-                    } else {
-                        continue;
-                    };
-                    if (config.entry_types.is_empty() || config.entry_types.contains(&entry_type))
-                        && (config.names.is_empty()
-                            || config
-                                .names
-                                .iter()
-                                .any(|re| re.is_match(entry.file_name().to_str().unwrap())))
-                    {
-                        println!("{}", entry.path().display());
-                    }
-                }
-            }
+    let type_filter = |entry: &walkdir::DirEntry| {
+        if config.entry_types.is_empty() {
+            true
+        } else {
+            let entry_type = if entry.file_type().is_dir() {
+                EntryType::Dir
+            } else if entry.file_type().is_file() {
+                EntryType::File
+            } else if entry.file_type().is_symlink() {
+                EntryType::Link
+            } else {
+                return false;
+            };
+            config.entry_types.contains(&entry_type)
         }
+    };
+
+    let name_filter = |entry: &walkdir::DirEntry| {
+        if config.names.is_empty() {
+            true
+        } else {
+            let name = entry.file_name().to_str().unwrap();
+            config.names.iter().any(|re| re.is_match(name))
+        }
+    };
+
+    for path in config.paths {
+        let entry_names = WalkDir::new(path)
+            .into_iter()
+            .filter_map(|e| match e {
+                Ok(e) => Some(e),
+                Err(e) => {
+                    eprintln!("{}", e);
+                    None
+                }
+            })
+            .filter(type_filter)
+            .filter(name_filter)
+            .map(|e| e.path().display().to_string())
+            .collect::<Vec<String>>();
+        println!("{}", entry_names.join("\n"));
     }
     Ok(())
 }
