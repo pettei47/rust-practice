@@ -73,11 +73,8 @@ pub fn run(config: Config) -> MyResult<()> {
     };
 
     let name_filter = |entry: &walkdir::DirEntry| {
-        config.names.is_empty()
-            || config
-                .names
-                .iter()
-                .any(|re| re.is_match(entry.file_name().to_str().unwrap()))
+        let name = entry.file_name().to_str().unwrap();
+        config.names.is_empty() || config.names.iter().any(|re| re.is_match(name))
     };
 
     for path in config.paths {
