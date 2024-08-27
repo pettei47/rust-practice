@@ -58,17 +58,21 @@ pub struct Config {
     entry_types: Vec<EntryType>,
 }
 
+fn get_file_type(entry: &walkdir::DirEntry) -> EntryType {
+    if entry.file_type().is_dir() {
+        EntryType::Dir
+    } else if entry.file_type().is_file() {
+        EntryType::File
+    } else if entry.file_type().is_symlink() {
+        EntryType::Link
+    } else {
+        unreachable!()
+    }
+}
+
 pub fn run(config: Config) -> MyResult<()> {
     let type_filter = |entry: &walkdir::DirEntry| {
-        let file_type = if entry.file_type().is_dir() {
-            EntryType::Dir
-        } else if entry.file_type().is_file() {
-            EntryType::File
-        } else if entry.file_type().is_symlink() {
-            EntryType::Link
-        } else {
-            return false;
-        };
+        let file_type = get_file_type(entry);
         config.entry_types.is_empty() || config.entry_types.contains(&file_type)
     };
 
@@ -80,16 +84,16 @@ pub fn run(config: Config) -> MyResult<()> {
     for path in config.paths {
         let entry_names = WalkDir::new(path)
             .into_iter()
-            .filter_map(|e| match e {
-                Ok(e) => Some(e),
-                Err(e) => {
-                    eprintln!("{}", e);
+            .filter_map(|entry| match entry {
+                Ok(entry) => Some(entry),
+                Err(error) => {
+                    eprintln!("{}", error);
                     None
                 }
             })
             .filter(type_filter)
             .filter(name_filter)
-            .map(|e| e.path().display().to_string())
+            .map(|entry| entry.path().display().to_string())
             .collect::<Vec<String>>();
         println!("{}", entry_names.join("\n"));
     }
