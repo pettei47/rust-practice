@@ -2,7 +2,7 @@ use clap::Parser;
 use cutr::Config;
 
 fn main() {
-    let Config::parse();
+    let config = Config::parse();
 
     if let Err(e) = cutr::run(config) {
         eprintln!("{}", e);
