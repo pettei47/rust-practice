@@ -1,7 +1,6 @@
 use anyhow::{anyhow, bail, Result};
-use clap::{builder::PossibleValue, ArgAction, Parser, ValueEnum};
+use clap::Parser;
 use regex::Regex;
-use std::error::Error;
 use std::num::NonZeroUsize;
 use std::ops::Range;
 
@@ -21,15 +20,6 @@ struct ArgsExtract {
     chars: Option<String>,
 }
 
-type PositionList = Vec<Range<usize>>;
-
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub enum Extract {
-    Fields(PositionList),
-    Bytes(PositionList),
-    Chars(PositionList),
-}
-
 #[derive(Debug, Parser)]
 #[command(version, author, about)]
 /// cutr command with Rust
@@ -43,6 +33,15 @@ pub struct Config {
 
     #[command(flatten)]
     extract: ArgsExtract,
+}
+
+type PositionList = Vec<Range<usize>>;
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum Extract {
+    Fields(PositionList),
+    Bytes(PositionList),
+    Chars(PositionList),
 }
 
 fn parse_index(input: &str) -> Result<usize> {
@@ -85,6 +84,22 @@ fn parse_pos(range: String) -> Result<PositionList> {
 
 pub fn run(config: Config) -> Result<()> {
     println!("{:?}", config);
+    let delim_bytes = config.delim.as_bytes();
+    if delim_bytes.len() != 1 {
+        bail!(r#"--delim "{}" must be a single byte"#, config.delim);
+    }
+    let delim: u8 = *delim_bytes.first().unwrap();
+
+    let extract = if let Some(fields) = config.extract.fields.map(parse_pos).transpose()? {
+        Extract::Fields(fields)
+    } else if let Some(bytes) = config.extract.bytes.map(parse_pos).transpose()? {
+        Extract::Bytes(bytes)
+    } else if let Some(chars) = config.extract.chars.map(parse_pos).transpose()? {
+        Extract::Chars(chars)
+    } else {
+        unreachable!("Must have --fields, --bytes, or --chars");
+    };
+    println!("{:?} {:?}", delim, extract);
     Ok(())
 }
 
