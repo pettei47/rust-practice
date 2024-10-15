@@ -1,6 +1,6 @@
 use anyhow::{anyhow, bail, Result};
 use clap::Parser;
-use csv::StringRecord;
+use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use regex::Regex;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
@@ -120,7 +120,6 @@ fn extract_fields<'a>(record: &'a StringRecord, field_pos: &[Range<usize>]) -> V
 }
 
 pub fn run(config: Config) -> Result<()> {
-    println!("{:?}", config);
     let delim_bytes = config.delim.as_bytes();
     if delim_bytes.len() != 1 {
         bail!(r#"--delim "{}" must be a single byte"#, config.delim);
@@ -136,11 +135,40 @@ pub fn run(config: Config) -> Result<()> {
     } else {
         unreachable!("Must have --fields, --bytes, or --chars");
     };
-    println!("{:?} {:?}", delim, extract);
     for filename in &config.files {
         match open(filename) {
             Err(e) => eprintln!("{}: {}", filename, e),
-            Ok(_) => println!("Opened {}", filename),
+            Ok(file) => match &extract {
+                Extract::Fields(pos) => {
+                    let mut reader = ReaderBuilder::new()
+                        .delimiter(delim)
+                        .has_headers(false)
+                        .from_reader(file);
+                    // let mut writer = WriterBuilder::new()
+                    //     .delimiter(delim)
+                    //     .from_writer(io::stdout());
+                    for result in reader.records() {
+                        let record = result?;
+                        let fields = extract_fields(&record, pos);
+                        println!("{}", fields.join(&config.delim));
+                        // wtr.write_record(extract_fields(&record?, field_pos))?;
+                    }
+                }
+                Extract::Bytes(pos) => {
+                    for line in file.lines() {
+                        let line = line?;
+                        let bytes = extract_bytes(&line, pos);
+                        println!("{}", bytes);
+                    }
+                }
+                Extract::Chars(pos) => {
+                    for line in file.lines() {
+                        let line = line?;
+                        let chars = extract_chars(&line, pos);
+                        println!("{}", chars);
+                    }
+                }
+            },
         }
     }
     Ok(())
