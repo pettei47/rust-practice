@@ -21,7 +21,7 @@ pub struct Config {
     files: Vec<String>,
 
     /// Case insensitive search
-    #[arg(short, long("ignore-case"))]
+    #[arg(short, long("insensitive"))]
     insensitive: bool,
 
     /// Recursive search
@@ -43,14 +43,26 @@ pub fn run(config: Config) -> Result<()> {
         .build()
         .map_err(|_| anyhow!(r#"Invalid pattern "{}""#, config.pattern))?;
     let entries = find_files(&config.files, config.recursive);
-    for entry in entries {
+    for entry in &entries {
         match entry {
             Err(e) => eprintln!("{e}"),
-            Ok(filename) => match open(&filename) {
+            Ok(filename) => match open(filename) {
                 Err(e) => eprintln!("{filename}: {e}"),
                 Ok(file) => {
                     let lines = find_lines(file, &pattern, config.invert)?;
-                    println!("Found: {:?}", lines);
+                    if config.count {
+                        if entries.len() > 1 {
+                            print!("{}:", filename);
+                        }
+                        println!("{}", lines.len());
+                    } else {
+                        for line in lines {
+                            if entries.len() > 1 {
+                                print!("{}:", filename);
+                            }
+                            print!("{}", line);
+                        }
+                    }
                 }
             },
         }
