@@ -43,6 +43,13 @@ pub fn run(config: Config) -> Result<()> {
         .build()
         .map_err(|_| anyhow!(r#"Invalid pattern "{}""#, config.pattern))?;
     let entries = find_files(&config.files, config.recursive);
+    let print_result = |filename: &str, value: &str| {
+        if entries.len() > 1 {
+            print!("{}:", filename);
+        }
+        print!("{}", value);
+    };
+
     for entry in &entries {
         match entry {
             Err(e) => eprintln!("{e}"),
@@ -51,16 +58,10 @@ pub fn run(config: Config) -> Result<()> {
                 Ok(file) => {
                     let lines = find_lines(file, &pattern, config.invert)?;
                     if config.count {
-                        if entries.len() > 1 {
-                            print!("{}:", filename);
-                        }
-                        println!("{}", lines.len());
+                        print_result(filename, &format!("{}\n", lines.len()));
                     } else {
                         for line in lines {
-                            if entries.len() > 1 {
-                                print!("{}:", filename);
-                            }
-                            print!("{}", line);
+                            print_result(filename, &line);
                         }
                     }
                 }
