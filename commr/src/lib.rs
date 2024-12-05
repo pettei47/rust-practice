@@ -34,7 +34,7 @@ pub struct Config {
     insensitive: bool,
 
     /// Output delimiter
-    #[arg(short, long = "output-delimeter", default_value = "\t")]
+    #[arg(short, long = "output-delimiter", default_value = "\t")]
     delimiter: String,
 }
 
