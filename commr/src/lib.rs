@@ -78,13 +78,27 @@ pub fn run(config: Config) -> Result<()> {
                 }
                 Greater => {
                     if !config.suppress_unique2 {
-                        println!("{}{}", config.delimiter, val2);
+                        if config.suppress_unique1 {
+                            println!("{}", val2);
+                        } else {
+                            println!("{}{}", config.delimiter, val2);
+                        }
                     }
                     line2 = lines2.next();
                 }
                 Equal => {
                     if !config.suppress_common {
-                        println!("{}{}{}", config.delimiter, config.delimiter, val2);
+                        if config.suppress_unique1 {
+                            if config.suppress_unique2 {
+                                println!("{}", val1);
+                            } else {
+                                println!("{}{}", config.delimiter, val1);
+                            }
+                        } else if config.suppress_unique2 {
+                            println!("{}{}", config.delimiter, val1);
+                        } else {
+                            println!("{}{}{}", config.delimiter, config.delimiter, val1);
+                        }
                     }
                     line1 = lines1.next();
                     line2 = lines2.next();
@@ -98,7 +112,11 @@ pub fn run(config: Config) -> Result<()> {
             }
             (None, Some(val2)) => {
                 if !config.suppress_unique2 {
-                    println!("{}{}", config.delimiter, val2);
+                    if config.suppress_unique1 {
+                        println!("{}", val2);
+                    } else {
+                        println!("{}{}", config.delimiter, val2);
+                    }
                 }
                 line2 = lines2.next();
             }
