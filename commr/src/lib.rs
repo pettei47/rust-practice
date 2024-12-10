@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use std::{
+    cmp::Ordering::{Equal, Greater, Less},
     fs::File,
     io::{self, BufRead, BufReader},
 };
@@ -34,7 +35,7 @@ pub struct Config {
     insensitive: bool,
 
     /// Output delimiter
-    #[arg(short, long = "output-delimiter", default_value = "\t")]
+    #[arg(short, long, default_value = "\t")]
     delimiter: String,
 }
 
@@ -46,16 +47,66 @@ pub fn run(config: Config) -> Result<()> {
         return Err(anyhow!("Both input files cannot be STDIN (\"-\")"));
     }
 
-    let _file1 = match open(file1) {
-        Err(e) => return Err(anyhow!("{file1}: {e}")),
-        Ok(file) => file,
-    };
-    let _file2 = match open(file2) {
-        Err(e) => return Err(anyhow!("{file2}: {e}")),
-        Ok(file) => file,
+    let case = |line: String| {
+        if config.insensitive {
+            line.to_lowercase()
+        } else {
+            line
+        }
     };
 
-    println!("Opened {} and {}", file1, file2);
+    let mut lines1 = match open(file1) {
+        Err(e) => return Err(anyhow!("{file1}: {e}")),
+        Ok(file) => file.lines().map_while(Result::ok).map(case),
+    };
+    let mut lines2 = match open(file2) {
+        Err(e) => return Err(anyhow!("{file2}: {e}")),
+        Ok(file) => file.lines().map_while(Result::ok).map(case),
+    };
+
+    let mut line1 = lines1.next();
+    let mut line2 = lines2.next();
+
+    while line1.is_some() || line2.is_some() {
+        match (&line1, &line2) {
+            (Some(val1), Some(val2)) => match val1.cmp(val2) {
+                Less => {
+                    if !config.suppress_unique1 {
+                        println!("{}", val1);
+                    }
+                    line1 = lines1.next();
+                }
+                Greater => {
+                    if !config.suppress_unique2 {
+                        println!("{}{}", config.delimiter, val2);
+                    }
+                    line2 = lines2.next();
+                }
+                Equal => {
+                    if !config.suppress_common {
+                        println!("{}{}{}", config.delimiter, config.delimiter, val2);
+                    }
+                    line1 = lines1.next();
+                    line2 = lines2.next();
+                }
+            },
+            (Some(val1), None) => {
+                if !config.suppress_unique1 {
+                    println!("{}", val1);
+                }
+                line1 = lines1.next();
+            }
+            (None, Some(val2)) => {
+                if !config.suppress_unique2 {
+                    println!("{}{}", config.delimiter, val2);
+                }
+                line2 = lines2.next();
+            }
+            _ => (),
+        }
+    }
+
+    // println!("Opened {} and {}", file1, file2);
 
     Ok(())
 }
