@@ -124,8 +124,6 @@ pub fn run(config: Config) -> Result<()> {
         }
     }
 
-    // println!("Opened {} and {}", file1, file2);
-
     Ok(())
 }
 
