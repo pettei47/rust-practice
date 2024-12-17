@@ -39,6 +39,12 @@ pub struct Config {
     delimiter: String,
 }
 
+enum Column {
+    One,
+    Two,
+    Three,
+}
+
 pub fn run(config: Config) -> Result<()> {
     let file1 = &config.file1;
     let file2 = &config.file2;
@@ -52,6 +58,33 @@ pub fn run(config: Config) -> Result<()> {
             line.to_lowercase()
         } else {
             line
+        }
+    };
+
+    let print_column = |line: String, column: Column| match column {
+        Column::One => {
+            if !config.suppress_unique1 {
+                println!("{}", line)
+            }
+        }
+        Column::Two => {
+            if !config.suppress_unique2 {
+                if !config.suppress_unique1 {
+                    print!("{}", config.delimiter);
+                }
+                println!("{}", line);
+            }
+        }
+        Column::Three => {
+            if !config.suppress_common {
+                if !config.suppress_unique1 {
+                    print!("{}", config.delimiter);
+                }
+                if !config.suppress_unique2 {
+                    print!("{}", config.delimiter);
+                }
+                println!("{}", line);
+            }
         }
     };
 
@@ -71,35 +104,15 @@ pub fn run(config: Config) -> Result<()> {
         match (&line1, &line2) {
             (Some(val1), Some(val2)) => match val1.cmp(val2) {
                 Less => {
-                    if !config.suppress_unique1 {
-                        println!("{}", val1);
-                    }
+                    print_column(val1.to_string(), Column::One);
                     line1 = lines1.next();
                 }
                 Greater => {
-                    if !config.suppress_unique2 {
-                        if config.suppress_unique1 {
-                            println!("{}", val2);
-                        } else {
-                            println!("{}{}", config.delimiter, val2);
-                        }
-                    }
+                    print_column(val2.to_string(), Column::Two);
                     line2 = lines2.next();
                 }
                 Equal => {
-                    if !config.suppress_common {
-                        if config.suppress_unique1 {
-                            if config.suppress_unique2 {
-                                println!("{}", val1);
-                            } else {
-                                println!("{}{}", config.delimiter, val1);
-                            }
-                        } else if config.suppress_unique2 {
-                            println!("{}{}", config.delimiter, val1);
-                        } else {
-                            println!("{}{}{}", config.delimiter, config.delimiter, val1);
-                        }
-                    }
+                    print_column(val1.to_string(), Column::Three);
                     line1 = lines1.next();
                     line2 = lines2.next();
                 }
