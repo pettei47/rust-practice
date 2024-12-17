@@ -118,19 +118,11 @@ pub fn run(config: Config) -> Result<()> {
                 }
             },
             (Some(val1), None) => {
-                if !config.suppress_unique1 {
-                    println!("{}", val1);
-                }
+                print_column(val1.to_string(), Column::One);
                 line1 = lines1.next();
             }
             (None, Some(val2)) => {
-                if !config.suppress_unique2 {
-                    if config.suppress_unique1 {
-                        println!("{}", val2);
-                    } else {
-                        println!("{}{}", config.delimiter, val2);
-                    }
-                }
+                print_column(val2.to_string(), Column::Two);
                 line2 = lines2.next();
             }
             _ => (),
