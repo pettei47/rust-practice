@@ -1,3 +1,4 @@
+use crate::Column::*;
 use anyhow::{anyhow, Result};
 use clap::Parser;
 use std::{
@@ -62,12 +63,12 @@ pub fn run(config: Config) -> Result<()> {
     };
 
     let print_column = |line: String, column: Column| match column {
-        Column::One => {
+        One => {
             if !config.suppress_unique1 {
                 println!("{}", line)
             }
         }
-        Column::Two => {
+        Two => {
             if !config.suppress_unique2 {
                 if !config.suppress_unique1 {
                     print!("{}", config.delimiter);
@@ -75,7 +76,7 @@ pub fn run(config: Config) -> Result<()> {
                 println!("{}", line);
             }
         }
-        Column::Three => {
+        Three => {
             if !config.suppress_common {
                 if !config.suppress_unique1 {
                     print!("{}", config.delimiter);
@@ -104,25 +105,25 @@ pub fn run(config: Config) -> Result<()> {
         match (&line1, &line2) {
             (Some(val1), Some(val2)) => match val1.cmp(val2) {
                 Less => {
-                    print_column(val1.to_string(), Column::One);
+                    print_column(val1.to_string(), One);
                     line1 = lines1.next();
                 }
                 Greater => {
-                    print_column(val2.to_string(), Column::Two);
+                    print_column(val2.to_string(), Two);
                     line2 = lines2.next();
                 }
                 Equal => {
-                    print_column(val1.to_string(), Column::Three);
+                    print_column(val1.to_string(), Three);
                     line1 = lines1.next();
                     line2 = lines2.next();
                 }
             },
             (Some(val1), None) => {
-                print_column(val1.to_string(), Column::One);
+                print_column(val1.to_string(), One);
                 line1 = lines1.next();
             }
             (None, Some(val2)) => {
-                print_column(val2.to_string(), Column::Two);
+                print_column(val2.to_string(), Two);
                 line2 = lines2.next();
             }
             _ => (),
