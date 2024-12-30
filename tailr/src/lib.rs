@@ -16,12 +16,10 @@ impl FromStr for TakeValue {
         if s == "+0" {
             Ok(TakeValue::PlusZero)
         } else if let Ok(num) = s.parse::<i64>() {
-            if s.starts_with('+') {
+            if s.starts_with('+') || num < 0 {
                 Ok(TakeValue::TakeNum(num))
-            } else if num > 0 {
-                Ok(TakeValue::TakeNum(-num))
             } else {
-                Ok(TakeValue::TakeNum(num))
+                Ok(TakeValue::TakeNum(-num))
             }
         } else {
             Err(format!("illegal offset -- {}: Invalid argument", s))
