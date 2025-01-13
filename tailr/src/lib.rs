@@ -49,3 +49,36 @@ pub fn run(config: Config) -> Result<()> {
     println!("{:?}", config);
     Ok(())
 }
+
+#[cfg(test)]
+mod unit_tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_take_value() {
+        assert_eq!("+0".parse::<TakeValue>(), Ok(PlusZero));
+        assert_eq!("-0".parse::<TakeValue>(), Ok(TakeNum(0)));
+        assert_eq!("-0".parse::<TakeValue>(), Ok(TakeNum(0)));
+        assert_eq!("+1".parse::<TakeValue>(), Ok(TakeNum(1)));
+        assert_eq!("-1".parse::<TakeValue>(), Ok(TakeNum(-1)));
+        assert_eq!("1".parse::<TakeValue>(), Ok(TakeNum(-1)));
+        assert_eq!(
+            "a".parse::<TakeValue>(),
+            Err("illegal offset -- a: Invalid argument".to_string())
+        );
+    }
+
+    #[test]
+    fn test_take_value_from_str() {
+        assert_eq!(TakeValue::from_str("+0"), Ok(PlusZero));
+        assert_eq!(TakeValue::from_str("-0"), Ok(TakeNum(0)));
+        assert_eq!(TakeValue::from_str("-0"), Ok(TakeNum(0)));
+        assert_eq!(TakeValue::from_str("+1"), Ok(TakeNum(1)));
+        assert_eq!(TakeValue::from_str("-1"), Ok(TakeNum(-1)));
+        assert_eq!(TakeValue::from_str("1"), Ok(TakeNum(-1)));
+        assert_eq!(
+            TakeValue::from_str("a"),
+            Err("illegal offset -- a: Invalid argument".to_string())
+        );
+    }
+}
