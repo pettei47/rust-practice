@@ -53,7 +53,7 @@ pub fn run(config: Config) -> Result<()> {
             Err(e) => eprintln!("{}: {}", filename, e),
             Ok(file) => {
                 let (lines, bytes) = count_lines_bytes(filename)?;
-                if num_files > 1 && !config.quiet {
+                if !config.quiet && num_files > 1 {
                     println!(
                         "{}==> {} <==",
                         if file_num > 0 { "\n" } else { "" },
@@ -71,7 +71,7 @@ pub fn run(config: Config) -> Result<()> {
     Ok(())
 }
 
-fn count_lines_bytes(filename: &str) -> Result<(i64, i64)> {
+fn count_lines_bytes(filename: &str) -> Result<(u64, u64)> {
     let mut file = BufReader::new(File::open(filename)?);
     let mut lines = 0;
     let mut bytes = 0;
@@ -82,13 +82,13 @@ fn count_lines_bytes(filename: &str) -> Result<(i64, i64)> {
             break;
         }
         lines += 1;
-        bytes += bytes_read as i64;
+        bytes += bytes_read as u64;
         buffer.clear();
     }
     Ok((lines, bytes))
 }
 
-fn print_lines(mut file: impl BufRead, output_lines: &TakeValue, total_lines: i64) -> Result<()> {
+fn print_lines(mut file: impl BufRead, output_lines: &TakeValue, total_lines: u64) -> Result<()> {
     if let Some(start) = get_start_index(output_lines, total_lines) {
         let mut line_num = 0;
         let mut buffer = String::new();
@@ -110,7 +110,7 @@ fn print_lines(mut file: impl BufRead, output_lines: &TakeValue, total_lines: i6
 fn print_bytes<T: Read + Seek>(
     mut file: T,
     output_bytes: &TakeValue,
-    total_bytes: i64,
+    total_bytes: u64,
 ) -> Result<()> {
     if let Some(start) = get_start_index(output_bytes, total_bytes) {
         file.seek(io::SeekFrom::Start(start))?;
@@ -123,19 +123,25 @@ fn print_bytes<T: Read + Seek>(
     Ok(())
 }
 
-fn get_start_index(take_val: &TakeValue, total: i64) -> Option<u64> {
+fn get_start_index(take_val: &TakeValue, total: u64) -> Option<u64> {
     match take_val {
         PlusZero => match total {
             0 => None,
             _ => Some(0),
         },
-        TakeNum(n) => match total {
-            0 => None,
-            _ if *n == 0 || *n > total => None,
-            _ if *n > 0 => Some((*n - 1) as u64),
-            _ if *n < 0 && (-n) < total => Some((total + n) as u64),
-            _ => Some(0),
-        },
+        TakeNum(n) => {
+            let abs_n = n.unsigned_abs();
+            if *n == 0 || total == 0 || (*n > 0 && abs_n > total) {
+                None
+            } else {
+                let start = if *n < 0 {
+                    total as i64 - abs_n as i64
+                } else {
+                    abs_n as i64 - 1
+                };
+                Some(if start < 0 { 0 } else { start as u64 })
+            }
+        }
     }
 }
 
