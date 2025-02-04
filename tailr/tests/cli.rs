@@ -828,3 +828,11 @@ fn multiple_files_c_plus_3() -> Result<()> {
         "tests/expected/all.c+3.out",
     )
 }
+
+#[test]
+fn big_file() -> Result<()> {
+    run(
+        &["tests/inputs/big_file.txt"],
+        "tests/expected/big_file.txt.out",
+    )
+}
