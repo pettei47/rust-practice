@@ -1,7 +1,8 @@
+use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use anyhow::{anyhow, Result, bail};
 use std::ffi::OsStr;
-use std::fs;
+use std::fs::{self, File};
 use walkdir::WalkDir;
 use clap::Parser;
 use regex::RegexBuilder;
@@ -24,8 +25,13 @@ pub struct Config {
     insensitive: bool,
 }
 
+#[derive(Debug)]
+struct Fortune {
+    source: String,
+    text: String,
+}
+
 pub fn run(config: Config) -> Result<()> {
-    println!("{:?}", config);
     let pattern = config.pattern.map(|val: String| {
         RegexBuilder::new(val.as_str())
             .case_insensitive(config.insensitive)
@@ -33,7 +39,9 @@ pub fn run(config: Config) -> Result<()> {
             .map_err(|_| anyhow!(r#"Invalid --pattern "{val}""#))
     })
     .transpose()?;
-    println!("{:?}", pattern);
+    let paths = find_files(&config.sources)?;
+    let fortunes = read_fortunes(&paths)?;
+    println!("{:?}", fortunes.last());
     Ok(())
 }
 
@@ -62,6 +70,35 @@ fn find_files(paths: &[String]) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+fn read_fortunes(paths: &[PathBuf]) -> Result<Vec<Fortune>> {
+    let mut fortunes = vec![];
+    let mut buffer = vec![];
+
+    for path in paths {
+        let basename = path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        let file = File::open(path).map_err(|e| anyhow!("{}: {e}", path.to_string_lossy()))?;
+
+        for line in BufReader::new(file).lines().map_while(Result::ok) {
+            if line == "%" {
+                if !buffer.is_empty() {
+                    fortunes.push(Fortune {
+                        source: basename.clone(),
+                        text: buffer.join("\n"),
+                    });
+                    buffer.clear();
+                }
+            } else {
+                buffer.push(line.to_string());
+            }
+        }
+    }
+
+    Ok(fortunes)
+}
 
 #[cfg(test)]
 mod unit_tests {
@@ -111,5 +148,37 @@ mod unit_tests {
         if let Some(filename) = files.last().unwrap().file_name() {
             assert_eq!(filename.to_string_lossy(), "jokes".to_string())
         }
+    }
+
+    #[test]
+    fn test_read_fortunes() {
+        // Parses all the fortunes without a filter
+        let res = read_fortunes(&[PathBuf::from("./tests/inputs/jokes")]);
+        assert!(res.is_ok());
+
+        if let Ok(fortunes) = res {
+            println!("{:?}", fortunes);
+            // Correct number and sorting
+            assert_eq!(fortunes.len(), 6);
+            assert_eq!(fortunes.first().unwrap().source, "jokes");
+            assert_eq!(
+                fortunes.first().unwrap().text,
+                "Q. What do you call a head of lettuce in a shirt and tie?\n\
+                A. Collared greens."
+            );
+            assert_eq!(
+                fortunes.last().unwrap().text,
+                "Q: What do you call a deer wearing an eye patch?\n\
+                A: A bad idea (bad-eye deer)."
+            );
+        }
+
+        // Filters for matching text
+        let res = read_fortunes(&[
+            PathBuf::from("./tests/inputs/jokes"),
+            PathBuf::from("./tests/inputs/quotes"),
+        ]);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap().len(), 11);
     }
 }
