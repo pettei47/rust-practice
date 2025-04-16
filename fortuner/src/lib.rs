@@ -1,6 +1,9 @@
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use anyhow::{anyhow, Result, bail};
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
+use rand::{RngCore, SeedableRng};
 use std::ffi::OsStr;
 use std::fs::{self, File};
 use walkdir::WalkDir;
@@ -41,7 +44,21 @@ pub fn run(config: Config) -> Result<()> {
     .transpose()?;
     let paths = find_files(&config.sources)?;
     let fortunes = read_fortunes(&paths)?;
-    println!("{:?}", fortunes.last());
+    
+    if pattern.is_some() {
+        let pattern = pattern.unwrap();
+        let filtered_fortunes: Vec<Fortune> = fortunes
+            .into_iter()
+            .filter(|f| pattern.is_match(&f.text))
+            .collect();
+        if filtered_fortunes.is_empty() {
+            bail!("No fortunes found matching the pattern");
+        }
+        println!("{}", pick_fortune(&filtered_fortunes, config.seed).unwrap());
+    } else {
+        println!("{}", pick_fortune(&fortunes, config.seed).unwrap());
+    }
+
     Ok(())
 }
 
@@ -98,6 +115,14 @@ fn read_fortunes(paths: &[PathBuf]) -> Result<Vec<Fortune>> {
     }
 
     Ok(fortunes)
+}
+
+fn pick_fortune(fortunes: &[Fortune], seed: Option<u64>) -> Option<String> {
+    let mut rng: Box<dyn RngCore> = match seed {
+        Some(seed) => Box::new(StdRng::seed_from_u64(seed)),
+        None => Box::new(rand::thread_rng()),
+    };
+    fortunes.choose(&mut rng).map(|f| f.text.to_string())
 }
 
 #[cfg(test)]
@@ -180,5 +205,33 @@ mod unit_tests {
         ]);
         assert!(res.is_ok());
         assert_eq!(res.unwrap().len(), 11);
+    }
+
+    #[test]
+    fn test_pick_fortune() {
+        // Create a slice of fortunes
+        let fortunes = &[
+            Fortune {
+                source: "fortunes".to_string(),
+                text: "You cannot achieve the impossible without \
+                        attempting the absurd."
+                    .to_string(),
+            },
+            Fortune {
+                source: "fortunes".to_string(),
+                text: "Assumption is the mother of all screw-ups."
+                    .to_string(),
+            },
+            Fortune {
+                source: "fortunes".to_string(),
+                text: "Neckties strangle clear thinking.".to_string(),
+            },
+        ];
+
+        // Pick a fortune with a seed
+        assert_eq!(
+            pick_fortune(fortunes, Some(1)).unwrap(),
+            "Neckties strangle clear thinking.".to_string()
+        );
     }
 }
