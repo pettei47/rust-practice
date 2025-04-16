@@ -52,11 +52,25 @@ pub fn run(config: Config) -> Result<()> {
             .filter(|f| pattern.is_match(&f.text))
             .collect();
         if filtered_fortunes.is_empty() {
-            bail!("No fortunes found matching the pattern");
+            return Ok(())
         }
-        println!("{}", pick_fortune(&filtered_fortunes, config.seed).unwrap());
+        let mut prev_source = None;
+        filtered_fortunes.iter().for_each(|f| {
+            match prev_source {
+                Some(ref source) if source == &f.source => {},
+                _ => {
+                    eprintln!("({})\n%", f.source);
+                    prev_source = Some(f.source.clone());
+                },
+            }
+            println!("{}\n%", f.text);
+        });
     } else {
-        println!("{}", pick_fortune(&fortunes, config.seed).unwrap());
+        println!(
+            "{}",
+            pick_fortune(&fortunes, config.seed)
+                .or_else(|| Some("No fortunes found".to_string())).unwrap()
+        );
     }
 
     Ok(())
