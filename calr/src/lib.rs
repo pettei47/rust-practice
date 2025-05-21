@@ -63,15 +63,15 @@ fn parse_month(month: String) -> Result<u32> {
             }
         }
         _ => {
-            let month_lowered = month.to_lowercase();
-            if month_lowered.len() < 3 {
-                bail!(r#"Invalid month "{month}""#)
-            }
-            if let Some(pos) = MONTH_NAMES.iter().position(|&m| m.to_lowercase().starts_with(&month_lowered)) {
+            let month_lowered = &month.to_lowercase();
+            if month_lowered.len() > 2 {
+                let Some(pos) = MONTH_NAMES.iter().position(|&m| m.to_lowercase().starts_with(month_lowered)) else {
+                    bail!(r#"Invalid month "{month}""#)
+                };
                 Ok((pos + 1) as u32)
             } else {
                 bail!(r#"Invalid month "{month}""#)
-            }
+            }            
         }
     }
 }
