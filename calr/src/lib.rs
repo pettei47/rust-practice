@@ -68,7 +68,7 @@ fn parse_month(month: String) -> Result<u32> {
                 .iter()
                 .enumerate()
                 .filter_map(|(i, &m)| if m.to_lowercase().starts_with(month_lowered) {
-                    Some((i))
+                    Some(i)
                 } else {
                     None
                 })
@@ -81,7 +81,6 @@ fn parse_month(month: String) -> Result<u32> {
     }
 }
 
-// --------------------------------------------------
 #[cfg(test)]
 mod tests {
     use super::{parse_month};
