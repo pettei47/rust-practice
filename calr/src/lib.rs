@@ -64,14 +64,19 @@ fn parse_month(month: String) -> Result<u32> {
         }
         _ => {
             let month_lowered = &month.to_lowercase();
-            if month_lowered.len() > 2 {
-                let Some(pos) = MONTH_NAMES.iter().position(|&m| m.to_lowercase().starts_with(month_lowered)) else {
-                    bail!(r#"Invalid month "{month}""#)
-                };
-                Ok((pos + 1) as u32)
-            } else {
+            let matches = MONTH_NAMES
+                .iter()
+                .enumerate()
+                .filter_map(|(i, &m)| if m.to_lowercase().starts_with(month_lowered) {
+                    Some((i))
+                } else {
+                    None
+                })
+                .collect::<Vec<_>>();
+            if matches.len() != 1 {
                 bail!(r#"Invalid month "{month}""#)
-            }            
+            }
+            Ok((matches[0] + 1) as u32)
         }
     }
 }
