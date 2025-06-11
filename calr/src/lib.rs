@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use clap::Parser;
 use chrono::{Datelike, Local, NaiveDate};
-
+use itertools::izip;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
@@ -40,19 +40,52 @@ pub fn run(config: Config) -> Result<()>{
     let mut month = config.month.map(parse_month).transpose()?;
 
     if config.show_current_year {
-        month = None;
-        year = Some(today.year());
-    } else if month.is_none() && year.is_none() {
+        let year = today.year();
+        let months: Vec<_> = (1..=12)
+            .map(|month| format_month(year, month, false, today))
+            .collect();
+        println!("{year:>32}");
+        for (i, chunk) in months.chunks(3).enumerate() {
+                if let [m1, m2, m3] = chunk {
+                    for lines in izip!(m1, m2, m3) {
+                        println!("{}{}{}", lines.0, lines.1, lines.2);
+                    }
+                    if i < 3 {
+                        println!();
+                    }
+                }
+            }
+        return Ok(());
+    }
+
+    if month.is_none() && year.is_some() {
+        let year = year.unwrap();
+        let months: Vec<_> = (1..=12)
+            .map(|month| format_month(year, month, false, today))
+            .collect();
+        println!("{year:>32}");
+        for (i, chunk) in months.chunks(3).enumerate() {
+                if let [m1, m2, m3] = chunk {
+                    for lines in izip!(m1, m2, m3) {
+                        println!("{}{}{}", lines.0, lines.1, lines.2);
+                    }
+                    if i < 3 {
+                        println!();
+                    }
+                }
+            }
+        return Ok(());
+    }
+    let print_year = year.is_some();
+    if month.is_none() && year.is_none() {
         month = Some(today.month());
+    }
+    if year.is_none() {
         year = Some(today.year());
     }
 
-    if let Some(year) = year {
-        println!("Year: {year}");
-    }
-    if let Some(month) = month {
-        println!("Month: {month}");
-    }
+    let formatted_month = format_month(year.unwrap(), month.unwrap(), print_year, today);
+    println!("{}", formatted_month.join("\n"));
     Ok(())
 }
 
