@@ -103,7 +103,7 @@ fn parse_month(month: String) -> Result<u32> {
     }
 }
 
-fn format_month (year: i32, month: u32, print_year: bool, today: NaiveDate) -> Vec<String> {
+fn format_month(year: i32, month: u32, print_year: bool, today: NaiveDate) -> Vec<String> {
     let first_day = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
     let last_day = last_day_in_month(year, month);
 
