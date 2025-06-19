@@ -108,12 +108,12 @@ fn format_month(year: i32, month: u32, print_year: bool, today: NaiveDate) -> Ve
     let last_day = last_day_in_month(year, month);
 
     // 先頭の空白を埋める
-    let mut days: Vec<String> = (1..first_day.weekday().number_from_sunday())
+    let mut days_with_front_space: Vec<String> = (1..first_day.weekday().number_from_sunday())
         .map(|_| "  ".to_string())
         .collect();
 
     // 日付を埋める
-    days.extend((first_day.day()..=last_day.day())
+    let days = (first_day.day()..=last_day.day())
         .map(|d| {
             let date = NaiveDate::from_ymd_opt(year, month, d).unwrap();
             if date == today {
@@ -121,8 +121,9 @@ fn format_month(year: i32, month: u32, print_year: bool, today: NaiveDate) -> Ve
             } else {
                 format!("{:2}", d)
             }
-        }));
-    
+        });
+    days_with_front_space.extend(days);
+
     let month_name = MONTH_NAMES[(month - 1) as usize];
     let header = format!(
         "{:^width$}  ",
@@ -137,7 +138,7 @@ fn format_month(year: i32, month: u32, print_year: bool, today: NaiveDate) -> Ve
     let mut calendar = vec![header, "Su Mo Tu We Th Fr Sa  ".to_string()];
 
     // 7日ごとに行を分ける
-    for day in days.chunks(7) {
+    for day in days_with_front_space.chunks(7) {
         let week = format!(
             "{:width$}  ",
             day.join(" "),
