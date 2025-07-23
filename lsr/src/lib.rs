@@ -1,6 +1,6 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use clap::Parser;
-use std::fs::{self, File};
+use std::fs::{self};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
@@ -19,7 +19,15 @@ pub struct Config {
 }
 
 pub fn run(config: Config) -> Result<()> {
-    println!("config: {:?}", config);
+    let paths = find_files(&config.paths, config.show_hidden)?;
+    for path in paths {
+        // if config.long {
+        //     let metadata = fs::metadata(&path)?;
+        //     println!("{:?} - {:?}", path, metadata);
+        // } else {
+            println!("{}", path.display());
+        // }
+    }
     Ok(())
 }
 
@@ -28,7 +36,7 @@ fn find_files(paths: &[String], show_hidden: bool) -> Result<Vec<PathBuf>> {
 
     for path in paths {
         match fs::metadata(path) {
-            Err(e) => bail!("{path}: {e}"),
+            Err(e) => eprintln!("{path}: {e}"),
             Ok(meta) => {
                 if meta.is_dir() {
                     let entries = fs::read_dir(path)?;
@@ -40,7 +48,7 @@ fn find_files(paths: &[String], show_hidden: bool) -> Result<Vec<PathBuf>> {
                         }
                     }
                 } else {
-                    files.push(path.into());
+                    files.push(PathBuf::from(path));
                 }
             }
         }
@@ -51,10 +59,10 @@ fn find_files(paths: &[String], show_hidden: bool) -> Result<Vec<PathBuf>> {
 
 #[cfg(test)]
 mod test {
-  use super::*;
+    use super::*;
 
-  #[test]
-  fn test_find_files() {
+    #[test]
+    fn test_find_files() {
         // Find all non-hidden entries in a directory
         let res = find_files(&["tests/inputs".to_string()], false);
         assert!(res.is_ok());
