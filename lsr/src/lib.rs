@@ -1,6 +1,9 @@
+mod owner;
+
 use anyhow::Result;
 use chrono::{DateTime, Local};
 use clap::Parser;
+use owner::Owner;
 use std::fs::{self};
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
@@ -60,18 +63,27 @@ fn find_files(paths: &[String], show_hidden: bool) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// Given an octal number like 0o500 and an [`Owner`],
+/// return a string like "r-x"
+fn get_permissions_string(mode: u32, owner: Owner) -> String {
+    let [read, write, execute] = owner.masks();
+    format!(
+        "{}{}{}",
+        if mode & read != 0 { 'r' } else { '-' },
+        if mode & write != 0 { 'w' } else { '-' },
+        if mode & execute != 0 { 'x' } else { '-'}
+    )
+}
+
+/// Given a file mode in octal format like 0o751,
+/// return a string like "rwxr-x--x"
 fn format_mode(mode: u32) -> String {
-    let mut permissions = String::new();
-    permissions.push(if mode & 0o400 != 0 { 'r' } else { '-' });
-    permissions.push(if mode & 0o200 != 0 { 'w' } else { '-' });
-    permissions.push(if mode & 0o100 != 0 { 'x' } else { '-' });
-    permissions.push(if mode & 0o040 != 0 { 'r' } else { '-' });
-    permissions.push(if mode & 0o020 != 0 { 'w' } else { '-' });
-    permissions.push(if mode & 0o010 != 0 { 'x' } else { '-' });
-    permissions.push(if mode & 0o004 != 0 { 'r' } else { '-' });
-    permissions.push(if mode & 0o002 != 0 { 'w' } else { '-' });
-    permissions.push(if mode & 0o001 != 0 { 'x' } else { '-' });
-    permissions
+    format!(
+        "{}{}{}",
+        get_permissions_string(mode, Owner::User),
+        get_permissions_string(mode, Owner::Group),
+        get_permissions_string(mode, Owner::Other)
+    )
 }
 
 fn format_output(paths: &[PathBuf]) -> Result<String> {
@@ -190,6 +202,14 @@ mod test {
                 "tests/inputs/fox.txt",
             ]
         );
+    }
+
+    #[test]
+    fn test_get_permissions_string() {
+        assert_eq!(get_permissions_string(0o751, Owner::User), "rwx");
+        assert_eq!(get_permissions_string(0o751, Owner::Group), "r-x");
+        assert_eq!(get_permissions_string(0o751, Owner::Other), "--x");
+        assert_eq!(get_permissions_string(0o600, Owner::Other), "---");
     }
 
     #[test]
